@@ -27,7 +27,6 @@ test_accuracy =[]
 neighbors_settings = range(1, 15)
 
 for n_neighbors in neighbors_settings:
-    print(n_neighbors)
     nbrs = KNeighborsClassifier(n_neighbors=n_neighbors)
     nbrs.fit(train_data, train_answer)
     #훈련 정확도 저장
