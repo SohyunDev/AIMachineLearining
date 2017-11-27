@@ -25,6 +25,7 @@ data, answer = readFile()
 imp = Imputer(missing_values='NaN', strategy='mean')
 imputed_data = imp.fit_transform(data)
 
+# Preprocessing (Standardzation)
 from sklearn import preprocessing
 scaler = preprocessing.StandardScaler().fit(imputed_data.astype(float))
 standard_data = scaler.transform(imputed_data.astype(float))
@@ -32,8 +33,42 @@ standard_data = scaler.transform(imputed_data.astype(float))
 train_data, test_data, train_answer, test_answer = crossValidation(standard_data, answer)
 
 nbrs= KNeighborsClassifier(n_neighbors=5)
-nbrs.fit(train_data,train_answer)
-test_pred = nbrs.predict(test_data)
-correct_count = (test_pred==test_answer).sum()
-test_acc = correct_count/len(test_answer)
-print(test_acc)
+
+PCA_accuracy_train = []
+PCA_accuracy_test = []
+PCA_accuracy_average = []
+max_accuracy_index = 1
+maximum = 0
+
+#Feature Selection PCA
+from sklearn.decomposition import PCA
+feature_size = range(1,375)
+for size in feature_size:
+    pca = PCA(n_components=size)
+    pca.fit(train_data)
+    train_data_proc = pca.transform(train_data)
+    test_data_proc = pca.transform(test_data)
+    train_model = nbrs.fit(train_data_proc, train_answer)
+    test_pred = train_model.predict(test_data_proc)
+    correct_count = (test_pred == test_answer).sum()
+    train_accuracy = correct_count / len(test_answer)
+    PCA_accuracy_train.append(train_accuracy)
+    test_model = nbrs.fit(test_data_proc, test_answer)
+    train_pred = test_model.predict(train_data_proc)
+    correct_count = (train_pred == train_answer).sum()
+    test_accuracy = correct_count / len(train_answer)
+    PCA_accuracy_test.append(test_accuracy)
+    average = (train_accuracy+test_accuracy)/2
+    PCA_accuracy_average.append(average)
+    if average>maximum:
+        maximum = average
+        max_accuracy_index = size
+
+print(max_accuracy_index)
+print(maximum)
+plt.plot(feature_size, PCA_accuracy_train, label="Accuracy_train")
+plt.plot(feature_size, PCA_accuracy_test, label="Accuracy_test")
+plt.plot(feature_size, PCA_accuracy_average, label="Accuracy_average")
+plt.ylabel("Accuracy")
+plt.xlabel("feature_size")
+plt.show()
