@@ -1,0 +1,91 @@
+import np as np
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.feature_selection import SelectPercentile
+from sklearn.decomposition import PCA
+from sklearn import preprocessing
+
+
+def readFile():
+    xl = pd.ExcelFile("3D_handwriting_train.xlsx")
+    dataX_excel = pd.read_excel(io=xl, sheetname="Acc-X", header=None)
+    dataY_excel = pd.read_excel(io=xl, sheetname="Acc-Y", header=None)
+    dataZ_excel = pd.read_excel(io=xl, sheetname="Acc-Z", header=None)
+
+
+    answer_excel = pd.read_excel(io=xl, sheetname="answer", header=None)
+    data = np.array(data_excel.values)
+    answer = np.array(answer_excel.values).flatten().transpose()
+    return data, answer
+
+def crossValidation(data, answer):
+    train_data, test_data, train_answer, test_answer = train_test_split(data, answer, test_size=0.8)
+    return train_data, test_data, train_answer, test_answer
+
+data, answer = readFile()
+train_data, test_data, train_answer, test_answer = crossValidation(data, answer)
+
+'''
+nbrs = KNeighborsClassifier(n_neighbors=5)
+train_model = nbrs.fit(train_data, train_answer)
+test_pred = train_model.predict(test_data)
+correct_count = (test_pred == test_answer).sum()
+training_accuracy = correct_count / len(test_answer)
+print("training")
+print(training_accuracy)
+
+test_model = nbrs.fit(test_data, test_answer)
+train_pred = train_model.predict(train_data)
+correct_count = (train_pred == train_answer).sum()
+test_accuracy = correct_count / len(train_answer)
+print("test")
+print(test_accuracy)
+
+for featureSize in range(1,9):
+    pca=PCA(n_components=featureSize)
+    pca.fit(train_data)
+    train_data_proc = pca.transform(train_data)
+    test_data_proc = pca.transform(test_data)
+    train_model = nbrs.fit(train_data_proc, train_answer)
+    test_pred = train_model.predict(test_data_proc)
+    correct_count = (test_pred == test_answer).sum()
+    training_accuracy = correct_count / len(test_answer)
+    print(featureSize)
+    print(training_accuracy)
+'''
+
+from sklearn.linear_model import LogisticRegression
+for percent in {12,24,36,48,60,72,84,96}:
+
+    select = SelectPercentile(percentile=percent)
+    select.fit(train_data,train_answer)
+    X_train_selected = select.transform(train_data)
+    X_test_selected = select.transform(test_data)
+    lr = LogisticRegression()
+    lr.fit(X_train_selected, train_answer)
+    print(percent)
+    print(lr.score(X_test_selected, test_answer))
+    mask = select.get_support()
+    plt.matshow(mask.reshape(1,-1), cmap='gray_r')
+    plt.xlabel("특성번호")
+    plt.show()
+
+lr = LogisticRegression()
+lr.fit(train_data, train_answer)
+print(lr.score(test_data,test_answer))
+
+from sklearn.feature_selection import SelectFromModel
+from sklearn.ensemble import RandomForestClassifier
+select = SelectFromModel(RandomForestClassifier(n_estimators=100,random_state=42),threshold="median")
+select.fit(train_data,train_answer)
+X_train_l1 = select.transform(train_data)
+X_test_l1 = select.transform(test_data)
+score = LogisticRegression().fit(X_train_l1, train_answer).score(X_test_l1, test_answer)
+print("random : "+str(score))
+mask = select.get_support()
+plt.matshow(mask.reshape(1,-1), cmap='gray_r')
+plt.xlabel("특성번호")
+plt.show()
